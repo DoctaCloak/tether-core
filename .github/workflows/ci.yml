@@ -1,0 +1,99 @@
+name: TetherCore CI
+
+# Controls when the workflow will run
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          # Optional: Caching dependencies for faster builds
+          # cache: 'pip' # or 'poetry' if using Poetry
+
+      - name: Install Poetry (if using Poetry)
+        # This step is only needed if you are using Poetry for dependency management.
+        # If you are using requirements.txt, you can skip this and the next Poetry-specific step.
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true # Recommended to create a virtual environment
+          virtualenvs-in-project: true # Creates .venv in the project directory
+          installer-parallel: true
+
+      - name: Load cached Poetry virtual environment (if using Poetry)
+        # This helps speed up builds by caching the virtual environment.
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3 # Use v4 if available and preferred
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies (using Poetry)
+        # This step is only needed if you are using Poetry.
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root # --no-root if your project is a library
+
+      # - name: Install dependencies (using pip and requirements.txt)
+      #   # Uncomment this section if you are using requirements.txt instead of Poetry.
+      #   # Ensure you have a requirements.txt file in your repository root or specify its path.
+      #   run: |
+      #     python -m pip install --upgrade pip
+      #     pip install -r requirements.txt
+      - name: Lint with Ruff (or Flake8)
+        # Ruff is a very fast linter and formatter, an alternative to Flake8 + Black + isort
+        # To use Ruff: pip install ruff (or add to pyproject.toml/requirements.txt)
+        # To use Flake8: pip install flake8 (or add to pyproject.toml/requirements.txt)
+        run: |
+          # Using Ruff (recommended for speed and features)
+          poetry run ruff check .
+          poetry run ruff format --check .
+          # If using Flake8:
+          # poetry run flake8 .
+        # If not using Poetry, replace 'poetry run' with direct execution if linters are in PATH,
+        # or activate virtualenv first. For example:
+        # run: |
+        #   source .venv/bin/activate # If .venv is created by pip
+        #   ruff check .
+        #   ruff format --check .
+
+      - name: Run tests with Pytest
+        # To use Pytest: pip install pytest (or add to pyproject.toml/requirements.txt)
+        # Ensure your tests are in the 'tests/' directory as per your project structure.
+        run: |
+          poetry run pytest tests/
+        # If not using Poetry, replace 'poetry run' as above:
+        # run: |
+        #   source .venv/bin/activate
+        #   pytest tests/
+
+      # Placeholder for building/testing the React UI (ui/tether_dashboard)
+      # This would typically involve setting up Node.js, installing npm dependencies,
+      # running linters (e.g., ESLint), and running UI tests (e.g., Jest/React Testing Library).
+      # - name: Setup Node.js for UI
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: '18' # Or your preferred Node.js version
+      #     cache: 'npm'
+      #     cache-dependency-path: ui/tether_dashboard/package-lock.json
+
+      # - name: Install UI dependencies and Test
+      #   working-directory: ./ui/tether_dashboard
+      #   run: |
+      #     npm ci
+      #     npm run lint
+      #     npm run test -- --watchAll=false # Ensure tests don't run in watch mode

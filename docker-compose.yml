@@ -1,0 +1,103 @@
+# Defines local development services for TetherCore.
+# Use './scripts/run_local_services.sh start' to launch these.
+
+version: "3.8" # Specify Docker Compose file format version
+
+services:
+  # --- Ollama for Local LLMs ---
+  ollama:
+    image: ollama/ollama:latest
+    container_name: tethercore_ollama
+    ports:
+      - "11434:11434" # Default Ollama API port
+    volumes:
+      - ollama_data:/root/.ollama # Persist Ollama models and data
+    # To run Ollama with GPU support (NVIDIA example):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1 # or 'all'
+    #           capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - tethercore_net
+
+  # --- Weaviate Vector Database ---
+  # This setup includes the text2vec-transformers module for on-the-fly vectorization.
+  # Ensure your Weaviate client configuration in TetherCore matches this.
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:1.24.1 # Use a specific stable version
+    container_name: tethercore_weaviate
+    ports:
+      - "8080:8080" # Weaviate HTTP API
+      - "50051:50051" # Weaviate gRPC API
+    volumes:
+      - weaviate_data:/var/lib/weaviate # Persist Weaviate data
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true" # Disable in production
+      PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+      DEFAULT_VECTORIZER_MODULE: "text2vec-transformers" # Or 'text2vec-openai', 'text2vec-cohere', etc. if configured
+      ENABLE_MODULES: "text2vec-transformers,generative-ollama" # Enable desired modules
+      # For text2vec-transformers, you might need to specify a model if not using the default.
+      # TRANSFORMERS_INFERENCE_API: 'http://t2v-transformers:8080' # If running transformers in a separate container
+      # For generative-ollama to allow Weaviate to call Ollama for RAG:
+      GENERATIVE_OLLAMA_API_ENDPOINT: "http://ollama:11434" # Points to the ollama service defined above
+      # CLUSTER_HOSTNAME: 'node1' # For multi-node setups, not typically needed for local dev
+    depends_on:
+      - ollama # Ensure Ollama is available if generative-ollama needs it at startup
+    restart: unless-stopped
+    networks:
+      - tethercore_net
+
+  # --- ChromaDB Vector Database (Alternative to Weaviate) ---
+  # Uncomment this section if you prefer to use ChromaDB.
+  # Ensure your TetherCore config (vector_store.provider) is set to "chroma".
+  # chroma:
+  #   image: chromadb/chroma:0.4.24 # Use a specific stable version
+  #   container_name: tethercore_chroma
+  #   ports:
+  #     - "8000:8000" # ChromaDB API port
+  #   volumes:
+  #     - chroma_data:/chroma/chroma # Persist ChromaDB data
+  #   # Environment variables for Chroma can be set here if needed,
+  #   # e.g., for allowing reset, specific embedding functions by default, etc.
+  #   # environment:
+  #   #   - CHROMA_SERVER_AUTH_PROVIDER=chromadb.auth.basic.BasicAuthServerProvider
+  #   #   - CHROMA_SERVER_AUTH_CREDENTIALS_FILE=/chroma_auth/chroma-basic-auth.ini
+  #   #   - IS_PERSISTENT=TRUE # Ensures data is saved to the volume
+  #   #   - ANONYMIZED_TELEMETRY=FALSE
+  #   restart: unless-stopped
+  #   networks:
+  #     - tethercore_net
+
+  # --- Optional: text2vec-transformers module for Weaviate (if not using Weaviate's built-in model) ---
+  # This is only needed if you want to run a specific Hugging Face model in its own container
+  # for Weaviate's text2vec-transformers module to use.
+  # Weaviate's default text2vec-transformers often uses sentence-transformers/all-MiniLM-L6-v2.
+  # t2v-transformers:
+  #   image: semitechnologies/transformers-inference:sentence-transformers-multi-qa-MiniLM-L6-cos-v1 # Example model
+  #   container_name: tethercore_t2v_transformers
+  #   environment:
+  #     ENABLE_CUDA: '0' # Set to 1 if you have CUDA and want GPU acceleration for transformers
+  #   # ports: # Not strictly necessary to expose if only Weaviate accesses it on the internal network
+  #   #   - "8081:8080"
+  #   restart: unless-stopped
+  #   networks:
+  #     - tethercore_net
+
+# Define named volumes for data persistence
+volumes:
+  ollama_data:
+    driver: local
+  weaviate_data:
+    driver: local
+  # chroma_data: # Uncomment if using ChromaDB
+  #   driver: local
+
+# Define a common network for services to communicate
+networks:
+  tethercore_net:
+    driver: bridge

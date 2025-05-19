@@ -1,14 +1,19 @@
-# pyproject.toml
-
 [tool.poetry]
 name = "tethercore"
 version = "0.1.0" # Initial development version
 description = "TetherCore: A Sovereign AI Companion. Your Mind, Your Data, Your AI. Built on Trust."
 authors = ["Christopher Taylor <christopher.taylor.jr@outlook.com>"] # Replace with your actual email if desired
 readme = "README.md"
-license = "MIT"
-repository = "https://github.com/DoctaCloak/tether-core"
+license = "MIT" # Placeholder - choose your actual license later
+repository = "https://github.com/DoctaCloak/tether-core" # Replace with your actual repo URL
+# documentation = "URL to your documentation if you host it separately"
 keywords = ["ai", "sovereign ai", "personal ai", "privacy", "llm", "memory", "agent"]
+
+# Explicitly define the packages that make up the "tethercore" project
+packages = [
+    { include = "tethercore_cli" },          # Looks for tethercore_cli/ at the root
+    { include = "tethercore_engine", from = "src" }, # Looks for tethercore_engine/ inside src/
+]
 
 # Specify compatible Python versions
 [tool.poetry.dependencies]
@@ -29,8 +34,9 @@ click = "^8.1.7"           # For tether-cli (Typer is built on Click)
 typer = {version = "^0.12.3", extras = ["all"]} # For tether-cli, 'all' extras for rich support
 
 # Data Validation & Settings Management
-pydantic = "^2.7.1"
-pydantic-settings = "^2.2.1"
+# Adjusted Pydantic version to match Syft's dependency
+pydantic = "2.6.0" # Syft 0.8.7/0.8.8 requires pydantic 2.6.0
+pydantic-settings = "^2.2.1" # Should be compatible with Pydantic 2.6.0
 
 # Configuration file parsing
 pyyaml = "^6.0.1"
@@ -162,4 +168,3 @@ python_functions = "test_*"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-

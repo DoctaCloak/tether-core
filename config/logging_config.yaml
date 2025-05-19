@@ -1,0 +1,80 @@
+# Python logging configuration using dictConfig format.
+# See: https://docs.python.org/3/library/logging.config.html#logging-config-dictschema
+
+version: 1
+disable_existing_loggers: false # Set to true to disable loggers from libraries
+
+formatters:
+  simple:
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  detailed:
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(module)s:%(lineno)d - %(process)d - %(thread)d - %(message)s"
+  cli_formatter:
+    format: "%(levelname)s: %(message)s" # Simpler format for CLI output
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG # Log level for console output (e.g., DEBUG, INFO, WARNING)
+    formatter: simple
+    stream: ext://sys.stdout
+
+  file_handler:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO # Log level for file output
+    formatter: detailed
+    filename: tethercore_app.log # Path to the log file
+    maxBytes: 10485760 # 10MB
+    backupCount: 5 # Number of backup log files to keep
+    encoding: utf8
+
+  # Example: Handler specifically for CLI output, could use a different formatter
+  cli_console_handler:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: cli_formatter
+    stream: ext://sys.stdout
+
+loggers:
+  # Root logger configuration
+  root:
+    level: INFO # Default minimum log level for the entire application
+    handlers: [console, file_handler] # Handlers to use for the root logger
+    # propagate: no # If you don't want root messages to also go to parent handlers (usually not needed for root)
+
+  # Specific logger for TetherCore engine components
+  tethercore_engine:
+    level: DEBUG # More detailed logging for your engine during development
+    handlers: [console, file_handler] # Can use the same or different handlers
+    propagate: no # Prevent engine messages from also being handled by the root logger's handlers if you want isolated handling
+
+  # Specific logger for the TetherCore CLI
+  tethercore_cli:
+    level: INFO # CLI might have a different default verbosity
+    handlers: [cli_console_handler] # Use a specific handler for CLI
+    propagate: no
+
+  # Example: Quieter logging for a noisy library
+  # "noisy_library_name":
+  #   level: WARNING
+  #   handlers: [console, file_handler]
+  #   propagate: no
+
+  # LiteLLM logging configuration (if it uses standard Python logging)
+  # litellm:
+  #   level: INFO # Or WARNING to reduce verbosity from LiteLLM
+  #   handlers: [console, file_handler]
+  #   propagate: no
+
+  # Weaviate client logging (if it uses standard Python logging)
+  # "weaviate":
+  #   level: INFO
+  #   handlers: [console, file_handler]
+  #   propagate: no
+# You can load this configuration in your application using:
+# import yaml
+# import logging.config
+# with open('config/logging_config.yaml', 'r') as f:
+#     log_config = yaml.safe_load(f)
+# logging.config.dictConfig(log_config)
+# logger = logging.getLogger(__name__) # or logging.getLogger('tethercore_engine.some_module')

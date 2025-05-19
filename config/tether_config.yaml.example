@@ -1,0 +1,67 @@
+# Example configuration for TetherCore.
+# Copy this file to 'tether_config.yaml' and customize it for your environment.
+# Values in this file can be overridden by environment variables (see .env.example)
+# or directly by environment variables (e.g., TETHERCORE__LLM_ROUTER__DEFAULT_MODEL).
+
+app_name: "TetherCore"
+environment: "development" # Options: development, production, testing
+debug_mode: true # Enable/disable debug mode features and logging
+
+# --- LLM Router Configuration (LiteLLM) ---
+llm_router:
+  default_model: "ollama/mistral" # Default model to use if not specified in a request
+  # List of models available to LiteLLM.
+  # For Ollama, ensure these models are pulled (e.g., 'ollama pull mistral')
+  # For cloud models, ensure API keys are set (typically via environment variables that LiteLLM reads)
+  available_models:
+    - "ollama/mistral"
+    - "ollama/phi-3"
+    - "ollama/llama3"
+    # - "openai/gpt-3.5-turbo" # Example, if OpenAI API key is set
+    # - "anthropic/claude-3-haiku-20240307" # Example, if Anthropic API key is set
+  verbose_litellm: false # Set to true for detailed LiteLLM logging
+
+# --- Vector Store Configuration ---
+vector_store:
+  provider: "weaviate" # Options: "weaviate", "chroma"
+  # Weaviate specific settings
+  weaviate_url: "http://localhost:8080" # URL of your Weaviate instance
+  weaviate_api_key: null # API key if using Weaviate Cloud Services (WCS)
+  # ChromaDB specific settings
+  chroma_path: "./chroma_data" # Path for on-disk ChromaDB persistence
+  chroma_collection_name: "tether_echos" # Name of the ChromaDB collection for Echos
+
+# --- Privacy Layer Configuration (PySyft) ---
+privacy_layer_syft:
+  use_local_virtual_worker: true # Use a local Syft virtual worker for development/testing
+  syft_node_url: null # URL if connecting to a remote Syft Domain/Node
+  # syft_api_key: "YOUR_SYFT_NODE_API_KEY" # If remote node requires an API key
+  # syft_email: "user@example.com" # If remote node uses email/password
+  # syft_password: "your_syft_password"
+
+# --- TetherChain Configuration ---
+tether_chain:
+  log_file_path: "tether_chain.log.jsonl" # Path to the TetherChain log file
+
+# --- Agent Runtime Configuration ---
+agent_runtime:
+  docker_socket_url: null # e.g., "unix:///var/run/docker.sock". Defaults to system default if null.
+  # wasm_runtime_path: "/path/to/wasmtime" # If using a specific WASM runtime executable
+
+# --- Voice Interface Configuration ---
+voice_interface:
+  whisper_cpp_executable:
+    "main" # Path to whisper.cpp 'main' executable or command name if in PATH
+    # Example: "./whisper.cpp/main" if compiled in that relative path
+  whisper_model_path:
+    "models/ggml-base.en.bin" # Path to the downloaded Whisper GGML model
+    # Example: "./whisper.cpp/models/ggml-base.en.bin"
+
+  piper_tts_executable: "piper" # Path to piper TTS executable or command name if in PATH
+  piper_tts_model_path: "models/en_US-lessac-medium.onnx" # Path to the Piper TTS voice model (.onnx file)
+  piper_tts_config_path: "models/en_US-lessac-medium.onnx.json" # Path to the Piper TTS voice model config (.json file)
+
+# --- Other Application Specific Settings ---
+# Example:
+# user_preferences:
+#   default_theme: "dark"
